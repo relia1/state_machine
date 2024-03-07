@@ -1,6 +1,11 @@
-use microbit::hal::{gpio, gpio::p0::Parts, pwm};
-use microbit::pac;
+use microbit::{
+    hal::{gpio, gpio::p0::Parts, pwm},
+    pac,
+};
 
+/// Speaker can have one of two states On/Off
+/// While On play a square wave through the speaker on loop
+/// using dma
 #[derive(Debug, Clone, Copy)]
 pub enum Speaker {
     On,
@@ -8,11 +13,16 @@ pub enum Speaker {
 }
 
 impl Speaker {
+    /// Speakers default state is off
     pub fn new() -> Self {
         Self::Off
     }
 
+    /// Turn on the speaker looping our sequences
     pub fn on(&self) {
+        // Board take will return none if it has already been called
+        // which it has in main.rs, so until I sort out how to do this better
+        // it is wrapped in an unsafe
         unsafe {
             let p = pac::Peripherals::steal();
             let my_pins = Parts::new(p.P0);
@@ -37,15 +47,8 @@ impl Speaker {
                 .loop_inf()
                 .enable();
 
-            static mut SQUARE_WAVE0: [u16; 64] = [0; 64];
-            static mut SQUARE_WAVE1: [u16; 64] = [0; 64];
-            for i in 0..64 {
-                SQUARE_WAVE0[i] = 0x8000;
-            }
-
-            for i in 0..64 {
-                SQUARE_WAVE1[i] = 0x0000;
-            }
+            static mut SQUARE_WAVE0: [u16; 64] = [0x8000; 64];
+            static mut SQUARE_WAVE1: [u16; 64] = [0x0000; 64];
 
             // Start the square wave
             let _pwm_seq = speaker
@@ -54,6 +57,7 @@ impl Speaker {
         }
     }
 
+    /// Turns off the speaker (stable state)
     pub fn off(&self) {
         unsafe {
             let p = pac::Peripherals::steal();

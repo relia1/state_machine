@@ -1,57 +1,108 @@
 #![no_main]
 #![no_std]
 
-use cortex_m::asm;
-use cortex_m_rt::entry;
-use critical_section_lock_mut::LockMut;
-use microbit::*;
-use panic_rtt_target as _;
-use rtt_target::{rprintln, rtt_init_print};
 mod leds;
 mod speaker;
 mod state;
-use crate::leds::DISPLAY;
+
+use cortex_m::asm;
+use cortex_m_rt::entry;
+use critical_section_lock_mut::LockMut;
+use leds::DISPLAY;
+use panic_rtt_target as _;
+use rtt_target::{rprintln, rtt_init_print};
 use state::*;
 
-// use critical_section_lock_mut::LockMut;
-use microbit::pac::{self as pac, interrupt, twim0::frequency::FREQUENCY_A};
 use microbit::{
     display::nonblocking::Display,
     hal::{delay::Delay, gpiote::*, prelude::*, twim, Timer},
+    pac::{self as pac, interrupt, twim0::frequency::FREQUENCY_A},
+    Board,
 };
 
 use lsm303agr::{AccelScale, Interrupt, Lsm303agr};
 
+/// Global mutex used for our accelerometer interrupt
 pub static GPIOTE: LockMut<Gpiote> = LockMut::new();
 
 #[entry]
 fn main() -> ! {
     rtt_init_print!();
 
-    let mut board = Board::take().unwrap();
+    // Grab board
+    let mut board = match Board::take() {
+        Some(res) => res,
+        None => {
+            panic!("There was a problem taking the board\n");
+        }
+    };
+
     let mut timer = Timer::new(board.TIMER0);
+    // There is an issue regarding interrupts/combined interrupt line
+    // that makes it so we need to do a work around of a small delay
+    // then a dummy read to i2c
     let mut delay = Delay::new(board.SYST);
     delay.delay_ms(1000u16);
 
     let display = Display::new(board.TIMER1, board.display_pins);
     DISPLAY.init(display);
 
+    // Initializing program data struct
     let mut board_accel = BoardAccel::new();
     let mut i2c = twim::Twim::new(board.TWIM0, board.i2c_internal.into(), FREQUENCY_A::K100);
-    let mut buf: [u8; 4] = [0, 0, 0, 0];
-    let _ = i2c.read(0x70, &mut buf);
+    // Dummy read to clear line from being held down
+    let mut buf = [0; 4];
+    let i2c_read = i2c.read(0x70, &mut buf);
+
+    match i2c_read {
+        Ok(()) => {
+            rprintln!("i2c read was successful\n");
+        }
+        Err(err) => {
+            rprintln!("i2c read result: {:?}\n", i2c_read);
+            rprintln!("Something went wrong: {:?}\n", err);
+            i2c.disable();
+            delay.delay_ms(1000u16);
+            i2c.enable();
+            delay.delay_ms(1000u16);
+            match i2c.read(0x19, &mut buf) {
+                Ok(()) => {
+                    rprintln!("i2c read was successful on the second try\n");
+                }
+                Err(err2) => {
+                    panic!("Something went wrong: {:?}\n", err2);
+                }
+            };
+        }
+    };
 
     let mut sensor = Lsm303agr::new_with_i2c(i2c);
 
-    sensor.init().unwrap();
-    sensor
-        .set_accel_mode_and_odr(
-            &mut timer,
-            lsm303agr::AccelMode::LowPower,
-            lsm303agr::AccelOutputDataRate::Hz100,
-        )
-        .unwrap();
+    match sensor.init() {
+        Ok(()) => {
+            rprintln!("success\n");
+        }
+        Err(err) => {
+            rprintln!("Something went wrong: {:?}\n", err);
+        }
+    };
 
+    let res = sensor.set_accel_mode_and_odr(
+        &mut timer,
+        lsm303agr::AccelMode::LowPower,
+        lsm303agr::AccelOutputDataRate::Hz10,
+    );
+    match res {
+        Ok(()) => {
+            rprintln!("Setting accel mode and odr\n");
+        }
+        Err(err) => {
+            panic!("Error setting accel mode and odr: {:?}\n", err);
+        }
+    };
+
+    // Setup the accelerometer so that the gravity scale is +-2G
+    // Enable dataready interrupt
     sensor.set_accel_scale(AccelScale::G2).unwrap();
     sensor.acc_enable_interrupt(Interrupt::DataReady1).unwrap();
     let gpiote = Gpiote::new(board.GPIOTE);
@@ -73,7 +124,8 @@ fn main() -> ! {
     pac::NVIC::unpend(pac::Interrupt::GPIOTE);
     pac::NVIC::unpend(pac::Interrupt::TIMER1);
 
-    sensor.acceleration().unwrap().xyz_mg();
+    // Counter used for entrance into the first if statement meaning we
+    // have enough samples to make our calculation
     let mut counter: u8 = 0;
     loop {
         if counter >= 5 {
