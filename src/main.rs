@@ -38,11 +38,7 @@ fn main() -> ! {
     };
 
     let mut timer = Timer::new(board.TIMER0);
-    // There is an issue regarding interrupts/combined interrupt line
-    // that makes it so we need to do a work around of a small delay
-    // then a dummy read to i2c
     let mut delay = Delay::new(board.SYST);
-    delay.delay_ms(1000u16);
 
     let display = Display::new(board.TIMER1, board.display_pins);
     DISPLAY.init(display);
@@ -50,31 +46,46 @@ fn main() -> ! {
     // Initializing program data struct
     let mut board_accel = BoardAccel::new();
     let mut i2c = twim::Twim::new(board.TWIM0, board.i2c_internal.into(), FREQUENCY_A::K100);
-    // Dummy read to clear line from being held down
-    let mut buf = [0; 4];
-    let i2c_read = i2c.read(0x70, &mut buf);
+    let mut success_read = false;
 
-    match i2c_read {
-        Ok(()) => {
-            rprintln!("i2c read was successful\n");
-        }
-        Err(err) => {
-            rprintln!("i2c read result: {:?}\n", i2c_read);
-            rprintln!("Something went wrong: {:?}\n", err);
-            i2c.disable();
-            delay.delay_ms(1000u16);
-            i2c.enable();
-            delay.delay_ms(1000u16);
-            match i2c.read(0x19, &mut buf) {
-                Ok(()) => {
-                    rprintln!("i2c read was successful on the second try\n");
-                }
-                Err(err2) => {
-                    panic!("Something went wrong: {:?}\n", err2);
-                }
-            };
-        }
-    };
+    for ms_delay in [1, 5, 10, 20, 50, 100, 500, 1000] {
+        rprintln!("ms delay: {}\n", ms_delay);
+        // There is an issue regarding interrupts/combined interrupt line
+        // that makes it so we need to do a work around of a small delay
+        // then a dummy read to i2c
+        delay.delay_ms(ms_delay as u16);
+        // Dummy read to clear line from being held down
+        let mut buf = [0; 4];
+        let i2c_read = i2c.read(0x70, &mut buf);
+
+        match i2c_read {
+            Ok(()) => {
+                rprintln!("i2c read was successful\n");
+                success_read = true;
+                break;
+            }
+            Err(err) => {
+                rprintln!("i2c read result: {:?}\n", i2c_read);
+                rprintln!("Something went wrong: {:?}\n", err);
+                i2c.disable();
+                delay.delay_ms(1000u16);
+                i2c.enable();
+                delay.delay_ms(1000u16);
+                match i2c.read(0x19, &mut buf) {
+                    Ok(()) => {
+                        rprintln!("i2c read was successful on the second try\n");
+                    }
+                    Err(err2) => {
+                        panic!("Something went wrong: {:?}\n", err2);
+                    }
+                };
+            }
+        };
+    }
+
+    if !success_read {
+        panic!("Failure trying to read from i2c\n");
+    }
 
     let mut sensor = Lsm303agr::new_with_i2c(i2c);
 
