@@ -89,7 +89,7 @@ checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
 [[package]]
 name = "critical-section-lock-mut"
 version = "0.1.2"
-source = "git+https://github.com/pdx-cs-rust-embedded/critical-section-lock-mut#d9c7dbb334e22a2787d482b532bf5f52bc2422ba"
+source = "git+https://github.com/pdx-cs-rust-embedded/critical-section-lock-mut#073cf6b37b673a075b3ce64b4bd69ef688b9ba5a"
 dependencies = [
  "critical-section",
 ]
@@ -139,9 +139,9 @@ checksum = "a21dea9854beb860f3062d10228ce9b976da520a73474aed3171ec276bc0c032"
 
 [[package]]
 name = "fixed"
-version = "1.25.1"
+version = "1.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e29e5681dc8556fb9df1409e95eae050e12e8776394313da3546dcb8cf390c73"
+checksum = "4810bcba5534219e7c160473f3a59167e2c98bd7516bc0eec5185848bcd38963"
 dependencies = [
  "az",
  "bytemuck",
@@ -172,8 +172,8 @@ dependencies = [
 
 [[package]]
 name = "microbit-common"
-version = "0.13.1"
-source = "git+https://github.com/BartMassey-upstream/microbit?branch=v0.13.1-pre#c0afda785e4c75c40c9fedbb8cbe799ec017cdb7"
+version = "0.13.0"
+source = "git+https://github.com/BartMassey-upstream/microbit#c30ecfc882295551ac2da06ca1f5690fa97849c2"
 dependencies = [
  "embedded-hal 0.2.7",
  "nrf52833-hal",
@@ -182,8 +182,8 @@ dependencies = [
 
 [[package]]
 name = "microbit-v2"
-version = "0.13.1"
-source = "git+https://github.com/BartMassey-upstream/microbit?branch=v0.13.1-pre#c0afda785e4c75c40c9fedbb8cbe799ec017cdb7"
+version = "0.13.0"
+source = "git+https://github.com/BartMassey-upstream/microbit#c30ecfc882295551ac2da06ca1f5690fa97849c2"
 dependencies = [
  "microbit-common",
 ]
@@ -211,8 +211,8 @@ checksum = "8d5439c4ad607c3c23abf66de8c8bf57ba8adcd1f129e699851a6e43935d339d"
 
 [[package]]
 name = "nrf-hal-common"
-version = "0.16.0"
-source = "git+https://github.com/BartMassey-upstream/nrf-hal?branch=v0.16.1-pre#114bb824fa947b7a7afa2e4da7873a1f5a10cd28"
+version = "0.16.1"
+source = "git+https://github.com/BartMassey-upstream/nrf-hal#47305547ce9ece39b08f2f3593175655ae2a227f"
 dependencies = [
  "cast",
  "cfg-if",
@@ -245,7 +245,7 @@ dependencies = [
 [[package]]
 name = "nrf52833-hal"
 version = "0.16.1"
-source = "git+https://github.com/BartMassey-upstream/nrf-hal?branch=v0.16.1-pre#114bb824fa947b7a7afa2e4da7873a1f5a10cd28"
+source = "git+https://github.com/BartMassey-upstream/nrf-hal#47305547ce9ece39b08f2f3593175655ae2a227f"
 dependencies = [
  "embedded-hal 0.2.7",
  "nrf-hal-common",

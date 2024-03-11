@@ -15,7 +15,6 @@ micromath = "2.1.0"
 
 [dependencies.microbit-v2]
 git = "https://github.com/BartMassey-upstream/microbit"
-branch = "v0.13.1-pre"
 
 [dependencies.panic-rtt-target]
 version = "0.1"

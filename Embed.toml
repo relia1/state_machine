@@ -2,17 +2,17 @@
 chip = "nrf52833_xxAA"
 
 [default.reset]
-enabled = false
+enabled = true
 halt_afterwards = false
 
 [default.rtt]
-enabled = false
+enabled = true
 log_enabled = true
 log_path = "./logs"
 timeout = 5000
 
 [default.gdb]
-enabled = true
+enabled = false
 
 [default.flashing]
-enabled = false
+enabled = true
